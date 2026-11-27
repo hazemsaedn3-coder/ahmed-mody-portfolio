@@ -14,12 +14,11 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   const SECTIONS = [
-    { id: 'nightlife', title: 'Nightlife & Events', short: 'Nightlife', idx: '01 / 07', desc: 'Party nights, Eid concerts and offers for hotels, lounges and beach resorts.' },
-    { id: 'food', title: 'Food & Drink', short: 'Food & Drink', idx: '02 / 07', desc: 'Product shots, promos and brand identity for cafés and restaurants.' },
-    { id: 'beauty', title: 'Beauty & Fashion', short: 'Beauty', idx: '03 / 07', desc: 'Campaign visuals and brand boards for skincare and apparel.' },
-    { id: 'music', title: 'Music & Media', short: 'Music', idx: '04 / 07', desc: 'Release artwork, streaming promos and live-show visuals.' },
-    { id: 'product', title: 'Product & Industrial', short: 'Product', idx: '05 / 07', desc: 'Product ad campaigns for manufacturers.' },
-    { id: 'ads', title: 'Ads & Announcements', short: 'Ads', idx: '06 / 07', desc: 'Hiring and promo ads.' },
+    { id: 'nightlife', title: 'Nightlife & Events', short: 'Nightlife', idx: '01 / 06', desc: 'Party nights, Eid concerts and offers for hotels, lounges and beach resorts.' },
+    { id: 'food', title: 'Food & Drink', short: 'Food & Drink', idx: '02 / 06', desc: 'Product shots, promos and brand identity for cafés and restaurants.' },
+    { id: 'beauty', title: 'Beauty & Fashion', short: 'Beauty', idx: '03 / 06', desc: 'Campaign visuals and brand boards for skincare and apparel.' },
+    { id: 'music', title: 'Music & Media', short: 'Music', idx: '04 / 06', desc: 'Release artwork, streaming promos and live-show visuals.' },
+    { id: 'product', title: 'Product & Industrial', short: 'Product', idx: '05 / 06', desc: 'Product ad campaigns for manufacturers.' },
   ];
   const SEC = Object.fromEntries([...SECTIONS, { id: 'web', title: 'Websites', short: 'Websites' }].map(s => [s.id, s]));
   const byId = Object.fromEntries(work.map(w => [w.id, w]));
@@ -52,7 +51,7 @@
   const stats = [
     [social.length, 'social designs', '#nightlife'],
     [partners.length, 'partner brands', '#partners'],
-    ['7', 'categories', '#nightlife'],
+    [SECTIONS.length + 1, 'categories', '#nightlife'],
   ];
   stats.forEach(([n, l, href]) => $('#stats').append(h('a', { class: 'stat', href, style: 'text-decoration:none' }, `<b>${n}</b><small>${l}</small>`)));
 
@@ -70,6 +69,7 @@
       `<img src="${thumb(w.id)}" alt="${esc(w.title)}" width="${w.w}" height="${w.h}">`);
     b.dataset.r = f.r;
     b.style.transform = `rotate(${f.r}deg)`;
+    b.style.setProperty('--r', f.r + 'deg'); b.style.setProperty('--i', i); b.style.setProperty('--fx', (f.x < 40 ? -80 : 80) + 'px');
     b.addEventListener('click', () => openViewer(f.id, featured.map(x => x.id)));
     stack.append(b);
   });
@@ -89,6 +89,7 @@
   const host = $('#sections');
   const cardObserver = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); cardObserver.unobserve(e.target); } }), { rootMargin: '0px 0px -40px 0px' });
 
+  function splitWords(t) { return t.split(' ').map((w, i) => `<span class="w"><span style="--wi:${i}">${esc(w)}</span></span>`).join(' '); }
   const makeCard = w => {
     const c = h('button', { class: 'card reveal', 'data-id': w.id, 'data-client': w.client, 'aria-label': `${w.title}, ${w.client}. Open to zoom.` },
       `<div class="ph"><img src="${thumb(w.id)}" alt="${esc(w.title)} for ${esc(w.client)}" width="${w.w}" height="${w.h}" loading="lazy"></div>
@@ -104,7 +105,7 @@
   SECTIONS.forEach(s => {
     const items = work.filter(w => w.section === s.id);
     const sec = h('section', { class: 'block', id: s.id, 'data-title': s.title });
-    sec.append(h('div', { class: 'block-head' }, `<span class="idx">${s.idx}</span><h2>${esc(s.title)}</h2><p>${esc(s.desc)} <span style="color:var(--dim)">· ${items.length} design${items.length > 1 ? 's' : ''}</span></p>`));
+    sec.append(h('div', { class: 'block-head' }, `<span class="idx">${s.idx}</span><h2>${splitWords(s.title)}</h2><p>${esc(s.desc)} <span style="color:var(--dim)">· ${items.length} design${items.length > 1 ? 's' : ''}</span></p>`));
     const clients = [...new Set(items.map(w => w.client))];
     const grid = h('div', { class: 'grid' });
     if (clients.length > 2) {
@@ -121,7 +122,7 @@
       });
       sec.append(chips);
     }
-    items.forEach(w => grid.append(makeCard(w)));
+    items.forEach((w, i) => { const c = makeCard(w); c.style.setProperty('--sd', (i % 4) * 0.09 + 's'); grid.append(c); });
     grid.addEventListener('click', e => {
       const card = e.target.closest('.card'); if (!card) return;
       const list = $$('.card:not(.hide)', grid).map(c => c.dataset.id);
@@ -146,12 +147,15 @@
   const logos = $('#logos');
   partners.forEach(p => {
     const n = work.filter(w => w.client === p.client).length;
-    const b = h('button', { class: 'logo reveal', 'aria-label': `${p.name}: ${n} designs` },
-      `<div class="lw"><img src="assets/logos/${p.id}.webp" alt="${esc(p.name)} logo" loading="lazy"></div><small>${esc(p.name)}</small><em>${n} design${n > 1 ? 's' : ''}</em>`);
-    b.addEventListener('click', () => openSheet(p.client));
+    const b = h(n ? 'button' : 'div', { class: 'logo reveal', 'aria-label': n ? `${p.name}: ${n} designs` : p.name },
+      `<div class="lw"><img src="assets/logos/${p.id}.webp" alt="${esc(p.name)} logo" loading="lazy"></div><small>${esc(p.name)}</small>${n ? `<em>${n} design${n > 1 ? 's' : ''}</em>` : ''}`);
+    b.style.setProperty('--sd', (logos.children.length % 6) * 0.06 + 's');
+    if (n) b.addEventListener('click', () => openSheet(p.client));
     cardObserver.observe(b);
     logos.append(b);
   });
+
+  $$('.block-head, .reveal-case, .stagger, .split-lines, .fade-up').forEach(el => cardObserver.observe(el));
 
   /* ---------- Client sheet ---------- */
   const sheet = $('#sheet');
